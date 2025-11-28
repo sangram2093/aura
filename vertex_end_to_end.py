@@ -128,12 +128,43 @@ Reference of the past year regulation entity relationship is given for your refe
 
 
 def _extract_json_blob(raw_text: str) -> Dict:
-    """Pick the first JSON object from the model response and validate it."""
-    match = re.search(r"(\{.*\})", raw_text, re.DOTALL)
-    if not match:
-        raise ValueError("No JSON object found in LLM response")
-    json_text = match.group(1)
-    return json.loads(json_text)
+    """
+    Pick the first valid JSON object from the model response and validate it.
+    Handles code fences and avoids over-greedy matching that breaks parsing.
+    """
+    text = raw_text.strip()
+    candidates: List[str] = []
+
+    # Prefer fenced JSON blocks if present
+    fenced = re.findall(r"```(?:json)?\s*(\{.*?\})\s*```", text, re.DOTALL)
+    candidates.extend(fenced)
+
+    # Scan for balanced brace blocks
+    start = text.find("{")
+    while start != -1:
+        depth = 0
+        end = None
+        for idx, ch in enumerate(text[start:], start=start):
+            if ch == "{":
+                depth += 1
+            elif ch == "}":
+                depth -= 1
+            if depth == 0:
+                end = idx
+                break
+        if end is not None:
+            candidates.append(text[start : end + 1])
+            start = text.find("{", end + 1)
+        else:
+            break
+
+    for cand in candidates:
+        try:
+            return json.loads(cand)
+        except json.JSONDecodeError:
+            continue
+
+    raise ValueError("No valid JSON object found in LLM response")
 
 
 def get_entity_relationship_with_context(
