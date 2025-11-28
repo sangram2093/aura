@@ -29,6 +29,7 @@ DEFAULT_MODEL = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
 DEFAULT_LOCATION = os.getenv("LOCATION", "us-central1")
 DEFAULT_PROJECT = os.getenv("PROJECT_ID") or os.getenv("PROJECT_NAME")
 DEFAULT_KEYFILE = os.getenv("GOOGLE_APPLICATION_CREDENTIALS", "keyfile.json")
+DEFAULT_MAX_OUTPUT_TOKENS = int(os.getenv("MAX_OUTPUT_TOKENS", "8192"))
 
 
 def init_vertexai_from_keyfile(
@@ -47,7 +48,7 @@ def init_vertexai_from_keyfile(
 def call_vertex(
     prompt: str,
     model_name: str = DEFAULT_MODEL,
-    max_output_tokens: int = 4096,
+    max_output_tokens: int = DEFAULT_MAX_OUTPUT_TOKENS,
     temperature: float = 0.01,
     top_p: float = 0.1,
     top_k: int = 40,
