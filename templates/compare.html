@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>AURA | Regulation Graph Comparison</title>
+  <script src="https://unpkg.com/vis-network@9.1.2/dist/vis-network.min.js"></script>
+  <link href="https://unpkg.com/vis-network@9.1.2/dist/vis-network.min.css" rel="stylesheet" />
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f4f7f9;
+      color: #2d3436;
+    }
+
+    .navbar {
+      height: 70px;
+      background-color: #003366;
+      color: white;
+      display: flex;
+      align-items: center;
+      padding: 0 20px;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 1000;
+    }
+
+    .navbar-title {
+      font-size: 22px;
+      font-weight: bold;
+      margin-left: 10px;
+    }
+
+    .sidebar {
+      position: fixed;
+      top: 70px;
+      left: 0;
+      bottom: 0;
+      width: 220px;
+      background-color: #2c3e50;
+      color: white;
+      padding-top: 20px;
+      z-index: 999;
+      transform: translateX(-100%);
+      transition: transform 0.3s ease;
+    }
+
+    .sidebar.show {
+      transform: translateX(0);
+    }
+
+    .sidebar h2 {
+      font-size: 20px;
+      text-align: center;
+      margin-bottom: 10px;
+      color: white;
+    }
+
+    .sidebar ul {
+      list-style: none;
+      padding: 0 20px;
+      margin: 0;
+    }
+
+    .sidebar ul li {
+      margin: 14px 0;
+    }
+
+    .sidebar ul li a {
+      color: #ecf0f1;
+      text-decoration: none;
+      font-size: 16px;
+    }
+
+    .sidebar ul li a:hover {
+      text-decoration: underline;
+    }
+
+    .main-content {
+      margin-top: 70px;
+      padding: 30px;
+      transition: margin-left 0.3s ease;
+      margin-bottom: 200px; /* Prevent table overlap */
+    }
+
+    .main-content.shifted {
+      margin-left: 220px;
+    }
+
+    h1 {
+      text-align: center;
+      padding: 10px;
+      background-color: #f0f0f0;
+    }
+
+    .container {
+      display: flex;
+      justify-content: space-around;
+      height: 70vh;
+      padding: 10px;
+    }
+
+    .graph-box {
+      width: 48%;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      height: 100%;
+      position: relative;
+    }
+
+    .graph-header {
+      text-align: center;
+      padding: 5px;
+      font-weight: bold;
+      background-color: #f8f8f8;
+      border-bottom: 1px solid #ccc;
+    }
+
+    #oldGraph, #newGraph {
+      height: calc(100% - 30px);
+    }
+
+    .tooltip {
+      position: absolute;
+      visibility: hidden;
+      padding: 6px;
+      background: #f9f9f9;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 12px;
+      z-index: 1000;
+      pointer-events: none;
+      white-space: pre-line;
+    }
+
+    .button-container {
+      text-align: center;
+      margin: 20px;
+    }
+
+    .download-btn {
+      margin: 5px;
+      padding: 10px 16px;
+      font-size: 14px;
+      background-color: #007BFF;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .download-btn:hover {
+      background-color: #0056b3;
+    }
+
+    .diff-table-container {
+      width: 96%;
+      margin: 40px auto 0;
+      display: none;
+    }
+
+    #diffTable {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+
+    #diffTable th, #diffTable td {
+      border: 1px solid #ccc;
+      padding: 10px;
+      vertical-align: top;
+      word-break: break-word;
+      white-space: pre-wrap;
+    }
+
+    #diffTable th {
+      background-color: #eee;
+    }
+
+    #diffTable th:nth-child(1),
+    #diffTable td:nth-child(1) {
+      width: 10%;
+      white-space: nowrap;
+    }
+
+    #diffTable th:nth-child(2),
+    #diffTable td:nth-child(2) {
+      width: 20%;
+    }
+
+    #diffTable th:nth-child(3),
+    #diffTable td:nth-child(3),
+    #diffTable th:nth-child(4),
+    #diffTable td:nth-child(4) {
+      width: 35%;
+    }
+
+    @media (max-width: 768px) {
+      .sidebar {
+        width: 100%;
+      }
+
+      .main-content.shifted {
+        margin-left: 0;
+      }
+
+      .container {
+        flex-direction: column;
+        height: auto;
+      }
+
+      .graph-box {
+        width: 100%;
+        margin-bottom: 20px;
+      }
+      a.m_title {
+        text-transform: capitalize;
+      }
+
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAVBAR -->
+  <div class="navbar">
+    <span onclick="toggleSidebar()" style="font-size: 24px; cursor: pointer;">☰</span>
+    <span class="navbar-title"> AURA | Automated Understanding & Regulatory Assistant </span>
+  </div>
+
+  <!-- SIDEBAR -->
+  <div class="sidebar" id="sidebar">
+    <h2>Navigation</h2>
+    <ul>
+      <li><a href="/dashboard">🏠 Dashboard</a></li>
+      <li class="dropdown">
+        <a href="#">🧾 Add Regulation ▾</a>
+        <ul class="dropdown-content">
+        {% for regulation in regulations_name %}
+          <li><a href="#">📄 Add {{ regulation }}</a></li>
+        {% endfor %}
+        </ul>
+      </li>
+      <!-- <li><a href="/documentation">📚 Documentation</a></li> -->
+      <li><a href="/history">🕘 Upload History</a></li>
+    </ul>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <div class="main-content" id="mainContent">
+    <h1>Regulatory Graph Comparison</h1>
+
+    <div class="container" id="graphContainer"></div>
+
+    <div class="button-container">
+      <button class="download-btn" onclick="regenerateGraphs(this)">🔄 Regenerate</button>
+      <button class="download-btn" onclick="generateBRD(this)">✅ Approve & Download BRD (Word)</button>
+      <button class="download-btn" onclick="approveKOP(this)">✅ Approve & Download KOP (Word)</button>
+      <button class="download-btn" onclick="goHome()">🏠 Go to Home</button>
+      <button id="download-graph" class="download-btn" onclick="downloadGraph('newGraph',this)">📥 Download New Graph as PNG</button>
+    </div>
+
+    <div class="diff-table-container" id="diffTableContainer">
+      <table id="diffTable">
+        <thead>
+          <tr>
+            <th>Type</th>
+            <th>Entity</th>
+            <th>Old</th>
+            <th>New</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div id="tooltip" class="tooltip"></div>
+  </div>
+
+  <script>
+    function toggleSidebar() {
+      const sidebar = document.getElementById("sidebar");
+      const main = document.getElementById("mainContent");
+      sidebar.classList.toggle("show");
+      main.classList.toggle("shifted");
+    }
+
+    const uploadId = {{ upload_id | safe }};
+
+    function edgeKey(edge) {
+      return edge.from + "->" + edge.to;
+    }
+
+    function formatAttributes(obj) {
+      if (!obj) return "-";
+      return Object.entries(obj)
+        .filter(([k]) => !['from', 'to', 'id'].includes(k))
+        .map(([key, value]) => `<b>${key}</b>: ${value}`)
+        .join("\n");
+    }
+
+    function getEntityName(id, nodesMap) {
+      return nodesMap.has(id) ? nodesMap.get(id).label : id;
+    }
+
+    function addDiffRow(type, entity, oldVal, newVal) {
+      const tbody = document.querySelector("#diffTable tbody");
+      const row = document.createElement("tr");
+      row.innerHTML = `
+        <td>${type}</td>
+        <td>${entity}</td>
+        <td>${oldVal}</td>
+        <td>${newVal}</td>
+      `;
+      tbody.appendChild(row);
+    }
+
+    function updatedownloadgraphButtonState(button) {
+        if (!button) return;
+        button.disabled = true;
+        button.innerText = "Downloading...";
+        button.classList.add("loading");
+      }
+
+      function resetdownloadgraphButtonState(button) {
+        if (!button) return;
+        button.disabled = false;
+        button.innerText = "📥 Download New Graph as PNG";
+        button.classList.remove("loading");
+      }
+
+    function downloadGraph(containerId,button) {
+      const container = document.getElementById(containerId);
+      updatedownloadgraphButtonState(button); 
+      html2canvas(container).then(canvas => {
+        const link = document.createElement("a");
+        link.download = `${containerId}_graph.png`;
+        link.href = canvas.toDataURL();
+        link.click();
+
+        resetdownloadgraphButtonState(button);
+    });
+    }
+
+    function resetButtonState(button) {
+  if (!button) return;
+
+  button.disabled = false;
+  button.innerText = "Download Graph";
+  button.classList.remove("loading");
+}
+
+    function regenerateGraphs(button) {
+      RespupdateButtonState(button,text = "Regenerating.....");
+      fetch(`/regenerate/${uploadId}`, { method: 'POST' })
+        .then(resp => resp.ok ? location.reload() : alert("Failed to regenerate graphs."));
+    }
+
+    function RespupdateButtonState(button,text) {
+      return new Promise((resolve) => {
+        if (!button) return resolve({ status: 400 });
+
+        button.disabled = true;
+        button.innerText = text; // Or show a spinner here
+        button.classList.add("loading");     // Add a CSS class for styling if needed
+
+        // Simulate a delay for the download (replace this with real logic if needed)
+        setTimeout(() => {
+          resolve({ status: 200 });
+        }, 1000); // simulate 1 second delay
+      });
+    }
+
+    function RespresetButtonStateBrd(button) {
+      if (!button) return;
+
+      button.disabled = false;
+      button.innerText = "✅ Approve & Download BRD (Word)";
+      button.classList.remove("loading");
+    }
+
+    function RespresetButtonStateKop(button) {
+      if (!button) return;
+
+      button.disabled = false;
+      button.innerText = "✅ Approve & Download KOP (Word)";
+      button.classList.remove("loading");
+    }
+
+
+    function approveKOP(button) {
+      RespupdateButtonState(button,text = "Downloading.....");  
+      fetch(`/approve/${uploadId}`, { method: 'POST' })
+        .then(resp => {
+          if (!resp.ok) throw new Error("Failed to generate KOP.");
+          return resp.blob();
+        })
+        .then(blob => {
+          const url = window.URL.createObjectURL(blob);
+          const link = document.createElement("a");
+          link.href = url;
+          link.download = `kop_upload_${uploadId}.docx`;
+          link.click();
+        })
+        .catch(() => {
+          alert("Error generating KOP document.");
+        })
+        .finally(() => {
+          RespresetButtonStateKop(button);
+        });
+      }
+
+    function generateBRD(button) {
+      RespupdateButtonState(button,text = "Downloading.....");  
+      fetch(`/generate_brd/${uploadId}`, { method: 'POST' })
+      .then(resp => {
+          if (!resp.ok) throw new Error("Failed to generate BRD.");
+          return resp.blob();
+        })
+        .then(blob => {
+          const url = window.URL.createObjectURL(blob);
+          const link = document.createElement("a");
+          link.href = url;
+          link.download = `brd_upload_${uploadId}.docx`;
+          link.click();
+        })
+        .catch(() => {alert("Error generating BRD document.");
+        })
+        .finally(() => {
+          RespresetButtonStateBrd(button);
+        });
+    }
+
+    function goHome() {
+      window.location.href = "../home";
+    }
+
+    async function renderGraph(containerId, data, fixedPositions = null, highlightEdges = []) {
+      const container = document.getElementById(containerId);
+      const tooltip = document.getElementById("tooltip");
+
+      const nodesDataSet = new vis.DataSet(data.nodes);
+      const edgesDataSet = new vis.DataSet(data.edges.map(edge => {
+        if (highlightEdges.includes(edgeKey(edge))) {
+          edge.color = { color: 'red' };
+          edge.font = { color: 'red', bold: true };
+        }
+        return edge;
+      }));
+
+      if (fixedPositions) {
+        nodesDataSet.forEach(node => {
+          const pos = fixedPositions[node.id];
+          if (pos) {
+            node.x = pos.x;
+            node.y = pos.y;
+            node.fixed = { x: true, y: true };
+            nodesDataSet.update(node);
+          }
+        });
+      }
+
+      const network = new vis.Network(container, {
+        nodes: nodesDataSet,
+        edges: edgesDataSet
+      }, {
+        layout: { improvedLayout: true },
+        interaction: { hover: true, tooltipDelay: 100 },
+        physics: {
+          enabled: !fixedPositions,
+          solver: 'repulsion', // Use repulsion solver for better node spacing
+          repulsion: {
+            nodeDistance: 200, // Controls spacing between nodes (increase if overlap occurs)
+            centralGravity: 0.2,
+            springLength: 200,
+            springConstant: 0.05,
+            damping: 0.09
+          },
+          stabilization: {
+            enabled: true,
+            iterations: 1000,
+            updateInterval: 25
+          }
+        },
+        nodes: {
+          shape: "dot",
+          size: 20,
+          font: { size: 14, color: "#000" }
+        },
+        edges: {
+          arrows: "to",
+          font: { align: "middle", size: 12, color: "#333" },
+          color: { color: "#848484", highlight: "#848484", hover: "#848484" },
+          smooth: { type: "dynamic" }
+        }
+      });
+
+      network.on("hoverEdge", function (params) {
+        const edge = edgesDataSet.get(params.edge);
+        if (edge && edge.title) {
+          tooltip.innerText = edge.title;
+          tooltip.style.left = params.event.pageX + 10 + "px";
+          tooltip.style.top = params.event.pageY + 10 + "px";
+          tooltip.style.visibility = "visible";
+        }
+      });
+
+      network.on("blurEdge", function () {
+        tooltip.style.visibility = "hidden";
+      });
+
+      return {
+        network,
+        getPositions: () =>
+          new Promise(resolve => {
+            if (!fixedPositions) {
+              network.once("stabilized", () => resolve(network.getPositions()));
+            } else {
+              resolve(null);
+            }
+          })
+      };
+    }
+
+    async function renderBothGraphs() {
+      const newRes = await fetch(`/graph_data/${uploadId}/new`).then(r => r.json());
+      let oldRes = null;
+      try {
+        const res = await fetch(`/graph_data/${uploadId}/old`);
+        oldRes = res.status === 200 ? await res.json() : null;
+      } catch (_) {}
+
+      const graphContainer = document.getElementById("graphContainer");
+
+      if (oldRes && oldRes.nodes && oldRes.nodes.length) {
+        graphContainer.innerHTML = `
+          <div class="graph-box">
+            <div class="graph-header">Old Regulation Graph</div>
+            <div id="oldGraph"></div>
+          </div>
+          <div class="graph-box">
+            <div class="graph-header">New Regulation Graph</div>
+            <div id="newGraph"></div>
+          </div>
+        `;
+
+        const oldNodeMap = new Map(oldRes.nodes.map(n => [n.id, n]));
+        const newNodeMap = new Map(newRes.nodes.map(n => [n.id, n]));
+        const oldEdgesMap = new Map(oldRes.edges.map(e => [edgeKey(e), e]));
+        const changedEdges = [];
+
+        for (const edge of newRes.edges) {
+          const key = edgeKey(edge);
+          const oldEdge = oldEdgesMap.get(key);
+          if (!oldEdge || oldEdge.label !== edge.label || oldEdge.title !== edge.title) {
+            changedEdges.push(key);
+            const fromLabel = getEntityName(edge.from, newNodeMap);
+            const toLabel = getEntityName(edge.to, newNodeMap);
+            const readableId = `${fromLabel} → ${toLabel}`;
+            addDiffRow("Edge", readableId, formatAttributes(oldEdge), formatAttributes(edge));
+          }
+        }
+
+        const { getPositions } = await renderGraph("oldGraph", oldRes);
+        const fixedPositions = await getPositions();
+        await renderGraph("newGraph", newRes, fixedPositions, changedEdges);
+        document.getElementById("diffTableContainer").style.display = "block";
+
+      } else {
+        graphContainer.innerHTML = `
+          <div class="graph-box" style="width: 100%;">
+            <div class="graph-header">New Regulation Graph</div>
+            <div id="newGraph"></div>
+          </div>
+        `;
+        await renderGraph("newGraph", newRes);
+      }
+    }
+
+    const script = document.createElement("script");
+    script.src = "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js";
+    script.onload = renderBothGraphs;
+    document.head.appendChild(script);
+
+  </script>
+</body>
+</html>

@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>AURA | Home</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f4f7f9;
+      color: #2d3436;
+      overflow-x: hidden;
+      height: 100vh;
+    }
+
+    /* NAVBAR */
+    .navbar {
+      height: 70px;
+      background-color: #003366;
+      color: white;
+      display: flex;
+      align-items: center;
+      padding: 0 20px;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 1000;
+    }
+
+    .navbar-title {
+      font-size: 22px;
+      font-weight: bold;
+      margin-left: 10px;
+      white-space: nowrap;
+    }
+
+    .typewriter-text::after {
+      content: '|';
+      animation: blink 0.8s infinite;
+      color: white;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+
+    /* SIDEBAR */
+    .sidebar {
+      position: fixed;
+      top: 70px;
+      left: 0;
+      bottom: 0;
+      width: 220px;
+      background-color: #2c3e50;
+      color: white;
+      padding-top: 20px;
+      z-index: 999;
+      transform: translateX(-100%);
+      transition: transform 0.3s ease;
+    }
+
+    .sidebar.show {
+      transform: translateX(0);
+    }
+
+    .sidebar h2 {
+      font-size: 20px;
+      text-align: center;
+      margin-bottom: 10px;
+      color: white;
+    }
+
+    .sidebar ul {
+      list-style: none;
+      padding: 0 20px;
+      margin: 0;
+    }
+
+    .sidebar ul li {
+      margin: 14px 0;
+    }
+
+    .sidebar ul li a {
+      color: #ecf0f1;
+      text-decoration: none;
+      font-size: 16px;
+    }
+
+    .sidebar ul li a:hover {
+      text-decoration: underline;
+    }
+
+    /* MAIN CONTENT CENTERED */
+    .main-content {
+      margin-top: 70px;
+      height: calc(100vh - 70px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: margin-left 0.3s ease;
+    }
+
+    .main-content.shifted {
+      margin-left: 220px;
+    }
+
+    .summary-container {
+      background: linear-gradient(135deg, #e6f0ff, #f9fbfd);
+      padding: 40px;
+      border-radius: 16px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+      max-width: 800px;
+      width: 100%;
+      text-align: center;
+      animation: fadeIn 1.2s ease;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: scale(0.95);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
+    .summary-container h1 {
+      font-size: 28px;
+      margin-bottom: 24px;
+      color: #003366;
+    }
+
+    .summary-container ul {
+      text-align: left;
+      margin: 0 auto;
+      padding-left: 1.5em;
+      max-width: 600px;
+    }
+
+    .summary-container ul li {
+      font-size: 16px;
+      line-height: 1.6;
+      margin-bottom: 12px;
+    }
+
+    .upload-section {
+      margin-top: 40px;
+      padding-top: 30px;
+      border-top: 2px solid #d0d7de;
+    }
+
+    .start-button {
+      margin-top: 20px;
+      padding: 12px 28px;
+      font-size: 16px;
+      background-color: #003366;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background-color 0.3s ease, transform 0.2s ease;
+    }
+
+    .start-button:hover {
+      background-color: #001f4d;
+      transform: scale(1.05);
+    }
+
+    @media (max-width: 768px) {
+      .sidebar {
+        width: 100%;
+      }
+
+      .main-content.shifted {
+        margin-left: 0;
+      }
+
+      .summary-container {
+        padding: 20px;
+        border-radius: 12px;
+      }
+
+      .summary-container h1 {
+        font-size: 22px;
+      }
+     
+  </style>
+</head>
+<body>
+
+  <!-- NAVBAR -->
+  <!-- NAVBAR -->
+  <div class="navbar" style="display: flex; justify-content: space-between; align-items: center; padding: 4px;">
+    <!-- Left side: menu icon + title -->
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <span onclick="toggleSidebar()" style="font-size: 24px; cursor: pointer;">☰</span>
+      <span class="navbar-title">
+        <span id="typewriter" class="typewriter-text"></span>
+      </span>
+    </div>
+  
+    <!-- Right side: Welcome + Logout -->
+    <div style="display: flex; align-items: center; gap: 15px;">
+      <span style="font-weight: bold;">Welcome, {{ username }}</span>
+      <form action="{{ url_for('logout') }}" method="POST" style="margin: 0;">
+        <button type="submit" style="background-color: #e74c3c; color: white; border: none; padding: 6px 12px; border-radius: 5px; cursor: pointer;">
+          Logout
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- SIDEBAR -->
+  <div class="sidebar" id="sidebar">
+    <h2>Navigation</h2>
+    <ul>
+      <li><a href="/dashboard">🏠 Dashboard</a></li>
+      <li class="dropdown">
+        <a href="#">🧾 Add Regulation ▾</a>
+        <ul class="dropdown-content">
+        {% for regulation in regulations_name %}
+          <li><a href="#">📄 Add {{ regulation }}</a></li>
+        {% endfor %}
+        </ul>
+      </li>
+      <!-- <li><a href="/documentation">📚 Documentation</a></li> -->
+      <li><a href="/history">🕘 Upload History</a></li>
+    </ul>
+  </div>
+
+  <!-- MAIN CONTENT CENTERED -->
+  <div class="main-content" id="mainContent">
+    <div class="summary-container">
+      <h1>Welcome to AURA — Your Regulatory AI Assistant</h1>
+      <ul>
+        <li>✅ AURA simplifies regulatory change management using AI.</li>
+        <li>📌 Upload regulation PDFs like EMIR, MiFID, or Dodd-Frank.</li>
+        <li>🔍 Detects clause-level changes with semantic analysis.</li>
+        <li>📊 Visualizes regulatory evolution over time.</li>
+        <li>🧠 Helps compliance teams assess impact efficiently.</li>
+        <li>💼 Saves time, reduces risk, and improves accuracy.</li>
+      </ul>
+      <div class="upload-section">
+        <h2 style="color:#003366;">Get Started with Uploading Regulations</h2>
+        <p>Click the button below to begin analyzing your first regulation document.</p>
+        <button class="start-button" onclick="location.href='/index'">🚀 Start Here</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCRIPT -->
+  <script>
+    function toggleSidebar() {
+      const sidebar = document.getElementById("sidebar");
+      const main = document.getElementById("mainContent");
+      sidebar.classList.toggle("show");
+      main.classList.toggle("shifted");
+    }
+
+    // Typewriter Effect
+    // --------------------- Java script----------------------
+    // Simple one-time typewriter effect
+const text = " AURA | Automated Understanding & Regulatory Assistant";
+const el = document.getElementById("typewriter");
+    let i = 0;
+  
+    function typeLoop() {
+      if (i <= text.length) {
+        el.textContent = text.slice(0, i++);
+        setTimeout(typeLoop, 100);
+      }
+    }
+  
+    typeLoop();
+
+  </script>
+
+
+</body>
+</html>

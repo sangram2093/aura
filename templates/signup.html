@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>AURA | Signup</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f4f7f9;
+      color: #2d3436;
+    }
+
+    .navbar {
+      height: 70px;
+      background-color: #003366;
+      color: white;
+      display: flex;
+      align-items: center;
+      padding: 0 20px;
+    }
+
+    .navbar-title {
+      font-size: 22px;
+      font-weight: bold;
+      white-space: nowrap;
+    }
+
+    .typewriter-text::after {
+      content: '|';
+      animation: blink 0.8s infinite;
+      color: white;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+
+    .container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: calc(100vh - 70px);
+    }
+
+    .form-box {
+      background: white;
+      padding: 40px;
+      border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+      width: 100%;
+      max-width: 400px;
+      animation: fadeIn 1.5s ease forwards;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .form-box h2 {
+      text-align: center;
+      color: #003366;
+      margin-bottom: 20px;
+    }
+
+    .form-box input[type="text"],
+    .form-box input[type="password"] {
+      width: 100%;
+      padding: 12px;
+      margin: 10px 0;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 16px;
+    }
+
+    .form-box button {
+      width: 100%;
+      padding: 12px;
+      background-color: #003366;
+      color: white;
+      font-size: 16px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+
+    .form-box button:hover {
+      background-color: #001f4d;
+    }
+
+    .form-box .link {
+      text-align: center;
+      margin-top: 15px;
+    }
+
+    .form-box .link a {
+      color: #003366;
+      text-decoration: none;
+    }
+
+    .form-box .link a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="navbar">
+    <span class="navbar-title">
+      <span id="typewriter" class="typewriter-text"></span>
+    </span>
+  </div>
+
+  <div class="container">
+    <div class="form-box">
+      <h2>Create Your Account</h2>
+      <form onsubmit="return validateSignup()">
+        <input type="text" id="newUsername" placeholder="Choose Username" required>
+        <input type="password" id="newPassword" placeholder="Choose Password" required>
+        <button type="submit">Signup</button>
+        <div class="link">Already have an account? <a href="login.html">Login</a></div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    function validateSignup() {
+      const username = document.getElementById("newUsername").value;
+      const password = document.getElementById("newPassword").value;
+
+      if (username === "Aryansh" && password === "1234") {
+        alert("⚠️ This user already exists. Please choose a different username.");
+        return false;
+      }
+
+      alert("✅ Account created! Redirecting to login...");
+      window.location.href = "login.html";
+      return false;
+    }
+
+    // Typewriter effect
+    const text = "📝 AURA | Signup Portal";
+    const el = document.getElementById("typewriter");
+    let i = 0, forward = true;
+
+    function typeLoop() {
+      if (forward) {
+        if (i <= text.length) {
+          el.textContent = text.slice(0, i++);
+        } else {
+          forward = false;
+          setTimeout(typeLoop, 1000);
+          return;
+        }
+      } else {
+        if (i >= 0) {
+          el.textContent = text.slice(0, i--);
+        } else {
+          forward = true;
+        }
+      }
+      setTimeout(typeLoop, 100);
+    }
+
+    typeLoop();
+  </script>
+</body>
+</html>
