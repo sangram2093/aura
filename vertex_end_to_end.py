@@ -30,7 +30,7 @@ DEFAULT_LOCATION = os.getenv("LOCATION", "us-central1")
 DEFAULT_PROJECT = os.getenv("PROJECT_ID") or os.getenv("PROJECT_NAME")
 DEFAULT_KEYFILE = os.getenv("GOOGLE_APPLICATION_CREDENTIALS", "keyfile.json")
 DEFAULT_MAX_OUTPUT_TOKENS = int(os.getenv("MAX_OUTPUT_TOKENS", "8192"))
-DEFAULT_PUML_SCALE = os.getenv("PLANTUML_SCALE", "max 1600 width 900 height")
+DEFAULT_PUML_SCALE = os.getenv("PLANTUML_SCALE", "max 1600*900")
 
 
 def init_vertexai_from_keyfile(
