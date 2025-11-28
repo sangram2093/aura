@@ -51,18 +51,20 @@ def call_vertex(
     temperature: float = 0.01,
     top_p: float = 0.1,
     top_k: int = 40,
+    response_mime_type: Optional[str] = None,
 ) -> str:
     """Call a Gemini model and return plain text."""
     model = GenerativeModel(model_name)
-    response = model.generate_content(
-        prompt,
-        generation_config={
-            "max_output_tokens": max_output_tokens,
-            "temperature": temperature,
-            "top_p": top_p,
-            "top_k": top_k,
-        },
-    )
+    gen_config = {
+        "max_output_tokens": max_output_tokens,
+        "temperature": temperature,
+        "top_p": top_p,
+        "top_k": top_k,
+    }
+    if response_mime_type:
+        gen_config["response_mime_type"] = response_mime_type
+
+    response = model.generate_content(prompt, generation_config=gen_config)
     if hasattr(response, "text") and response.text:
         return response.text
     # Fallback if the SDK returns candidates only
@@ -133,6 +135,22 @@ def _extract_json_blob(raw_text: str) -> Dict:
     Handles code fences and avoids over-greedy matching that breaks parsing.
     """
     text = raw_text.strip()
+
+    # Direct parse attempt (handles pure JSON responses)
+    try:
+        return json.loads(text)
+    except Exception:
+        pass
+
+    # Strip fenced blocks and try again
+    fence_match = re.search(r"```(?:json)?\s*(\{.*\})\s*```", text, re.DOTALL)
+    if fence_match:
+        fenced_text = fence_match.group(1)
+        try:
+            return json.loads(fenced_text)
+        except Exception:
+            text = fenced_text  # continue scanning using fenced content
+
     candidates: List[str] = []
 
     # Prefer fenced JSON blocks if present
@@ -211,7 +229,11 @@ Reference of the past year regulation entity relationship is given for your refe
 {context}
 """
 
-    raw = call_vertex(prompt, model_name=model_name)
+    raw = call_vertex(
+        prompt,
+        model_name=model_name,
+        response_mime_type="application/json",
+    )
     return _extract_json_blob(raw)
 
 
