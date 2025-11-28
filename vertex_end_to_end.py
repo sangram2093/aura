@@ -356,6 +356,8 @@ def generate_plantuml(graph: Dict, title: Optional[str] = None, scale: Optional[
 
     lines.append("")
 
+    detail_lines: List[str] = []
+
     for edge in edges:
         src = sanitize_id(edge["source"])
         dst = sanitize_id(edge["target"])
@@ -364,19 +366,27 @@ def generate_plantuml(graph: Dict, title: Optional[str] = None, scale: Optional[
         optionality = edge.get("optionality", "")
         frequency = edge.get("frequency", "")
 
-        label_parts = [relation]
-        if condition:
-            label_parts.append(f"({condition})")
-        if optionality:
-            label_parts.append(f"[{optionality}]")
-        if frequency:
-            label_parts.append(f"{{{frequency}}}")
+        # Keep the edge label short (just the verb/relation)
+        label = relation.strip()
+        lines.append(f"{src} --> {dst} : {label}")
 
-        label = " ".join([p for p in label_parts if p]).strip()
-        if label:
-            lines.append(f"{src} --> {dst} : {label}")
-        else:
-            lines.append(f"{src} --> {dst}")
+        # Collect detailed info for a note to avoid bloating edge labels
+        detail_parts = []
+        if condition:
+            detail_parts.append(f"cond={condition}")
+        if optionality:
+            detail_parts.append(f"opt={optionality}")
+        if frequency:
+            detail_parts.append(f"freq={frequency}")
+        if detail_parts:
+            detail_lines.append(f"{edge.get('source')} -> {edge.get('target')}: {relation or '(unlabeled)'} | " + "; ".join(detail_parts))
+
+    if detail_lines:
+        lines.append("note bottom")
+        lines.append("  Edge details (cond/opt/freq):")
+        for dl in detail_lines:
+            lines.append(f"  - {dl}")
+        lines.append("end note")
 
     lines.append("@enduml")
     return "\n".join(lines)
@@ -434,17 +444,29 @@ def generate_plantuml_diff(old_graph: Dict, new_graph: Dict, title: Optional[str
 
     lines.append("")
 
+    detail_lines: List[str] = []
+
     for k in common_keys:
         e = new_edges[k]
         lines.append(_edge_line(e, color=None))
+        detail_lines.extend(_edge_detail_lines(e, prefix="COMMON"))
 
     for k in added_keys:
         e = new_edges[k]
         lines.append(_edge_line(e, color="#008800"))
+        detail_lines.extend(_edge_detail_lines(e, prefix="NEW"))
 
     for k in removed_keys:
         e = old_edges[k]
         lines.append(_edge_line(e, color="#BB0000", dashed=True, prefix="REMOVED: "))
+        detail_lines.extend(_edge_detail_lines(e, prefix="REMOVED"))
+
+    if detail_lines:
+        lines.append("note bottom")
+        lines.append("  Edge details (cond/opt/freq):")
+        for dl in detail_lines:
+            lines.append(f"  - {dl}")
+        lines.append("end note")
 
     lines.append("@enduml")
     return "\n".join(lines)
@@ -459,13 +481,7 @@ def _edge_line(edge: Dict, color: Optional[str], dashed: bool = False, prefix: s
     frequency = edge.get("frequency", "")
 
     label_parts = [prefix or "", relation]
-    if condition:
-        label_parts.append(f"({condition})")
-    if optionality:
-        label_parts.append(f"[{optionality}]")
-    if frequency:
-        label_parts.append(f"{{{frequency}}}")
-
+    # Edge label kept concise: only prefix + relation
     label = " ".join([p for p in label_parts if p]).strip()
     arrow = "-->" if not dashed else "..>"
     if color:
@@ -474,6 +490,25 @@ def _edge_line(edge: Dict, color: Optional[str], dashed: bool = False, prefix: s
     if label:
         return f"{src} {arrow} {dst} : {label}"
     return f"{src} {arrow} {dst}"
+
+
+def _edge_detail_lines(edge: Dict, prefix: str = "") -> List[str]:
+    relation = edge.get("relation", "") or "(unlabeled)"
+    condition = edge.get("condition", "")
+    optionality = edge.get("optionality", "")
+    frequency = edge.get("frequency", "")
+
+    parts = []
+    if condition:
+        parts.append(f"cond={condition}")
+    if optionality:
+        parts.append(f"opt={optionality}")
+    if frequency:
+        parts.append(f"freq={frequency}")
+    if not parts:
+        return []
+    tag = f"[{prefix}] " if prefix else ""
+    return [f"{tag}{edge.get('source')} -> {edge.get('target')}: {relation} | " + "; ".join(parts)]
 
 
 # ---- Confluence publishing ------------------------------------------------ #
