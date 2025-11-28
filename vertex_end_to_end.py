@@ -358,7 +358,7 @@ def generate_plantuml(graph: Dict, title: Optional[str] = None, scale: Optional[
 
     detail_lines: List[str] = []
 
-    for edge in edges:
+    for idx, edge in enumerate(edges, start=1):
         src = sanitize_id(edge["source"])
         dst = sanitize_id(edge["target"])
         relation = edge.get("relation", "")
@@ -366,9 +366,10 @@ def generate_plantuml(graph: Dict, title: Optional[str] = None, scale: Optional[
         optionality = edge.get("optionality", "")
         frequency = edge.get("frequency", "")
 
-        # Keep the edge label short (just the verb/relation)
-        label = relation.strip()
-        lines.append(f"{src} --> {dst} : {label}")
+        # Short label with an ID so it can be cross-referenced in the legend
+        label_relation = relation.strip() or "(edge)"
+        edge_id = f"E{idx}"
+        lines.append(f"{src} --> {dst} : [{edge_id}] {label_relation}")
 
         # Collect detailed info for a note to avoid bloating edge labels
         detail_parts = []
@@ -379,14 +380,14 @@ def generate_plantuml(graph: Dict, title: Optional[str] = None, scale: Optional[
         if frequency:
             detail_parts.append(f"freq={frequency}")
         if detail_parts:
-            detail_lines.append(f"{edge.get('source')} -> {edge.get('target')}: {relation or '(unlabeled)'} | " + "; ".join(detail_parts))
+            detail_lines.append(f"{edge_id}: {edge.get('source')} -> {edge.get('target')} | {label_relation} | " + "; ".join(detail_parts))
 
     if detail_lines:
-        lines.append("note bottom")
-        lines.append("  Edge details (cond/opt/freq):")
+        lines.append("legend bottom")
+        lines.append("  Edge details (use edge ID to match arrow):")
         for dl in detail_lines:
-            lines.append(f"  - {dl}")
-        lines.append("end note")
+            lines.append(f"  {dl}")
+        lines.append("endlegend")
 
     lines.append("@enduml")
     return "\n".join(lines)
@@ -424,7 +425,7 @@ def generate_plantuml_diff(old_graph: Dict, new_graph: Dict, title: Optional[str
 
     lines.append("skinparam backgroundColor #FFFFFF")
     lines.append("skinparam componentStyle rectangle")
-    lines.append("legend right")
+    lines.append("legend top")
     lines.append("  <color:#555555>Common</color>")
     lines.append("  <color:#008800>New</color>")
     lines.append("  <color:#BB0000>Removed</color>")
@@ -445,34 +446,40 @@ def generate_plantuml_diff(old_graph: Dict, new_graph: Dict, title: Optional[str
     lines.append("")
 
     detail_lines: List[str] = []
+    cid = 1
+    nid = 1
+    rid = 1
 
     for k in common_keys:
         e = new_edges[k]
-        lines.append(_edge_line(e, color=None))
-        detail_lines.extend(_edge_detail_lines(e, prefix="COMMON"))
+        edge_id = f"C{cid}"; cid += 1
+        lines.append(_edge_line(e, color=None, edge_id=edge_id))
+        detail_lines.extend(_edge_detail_lines(e, prefix=edge_id))
 
     for k in added_keys:
         e = new_edges[k]
-        lines.append(_edge_line(e, color="#008800"))
-        detail_lines.extend(_edge_detail_lines(e, prefix="NEW"))
+        edge_id = f"N{nid}"; nid += 1
+        lines.append(_edge_line(e, color="#008800", edge_id=edge_id))
+        detail_lines.extend(_edge_detail_lines(e, prefix=edge_id))
 
     for k in removed_keys:
         e = old_edges[k]
-        lines.append(_edge_line(e, color="#BB0000", dashed=True, prefix="REMOVED: "))
-        detail_lines.extend(_edge_detail_lines(e, prefix="REMOVED"))
+        edge_id = f"R{rid}"; rid += 1
+        lines.append(_edge_line(e, color="#BB0000", dashed=True, prefix="REMOVED:", edge_id=edge_id))
+        detail_lines.extend(_edge_detail_lines(e, prefix=edge_id))
 
     if detail_lines:
-        lines.append("note bottom")
-        lines.append("  Edge details (cond/opt/freq):")
+        lines.append("legend bottom")
+        lines.append("  Edge details (match IDs on arrows):")
         for dl in detail_lines:
-            lines.append(f"  - {dl}")
-        lines.append("end note")
+            lines.append(f"  {dl}")
+        lines.append("endlegend")
 
     lines.append("@enduml")
     return "\n".join(lines)
 
 
-def _edge_line(edge: Dict, color: Optional[str], dashed: bool = False, prefix: str = "") -> str:
+def _edge_line(edge: Dict, color: Optional[str], dashed: bool = False, prefix: str = "", edge_id: Optional[str] = None) -> str:
     src = sanitize_id(edge["source"])
     dst = sanitize_id(edge["target"])
     relation = edge.get("relation", "")
@@ -480,8 +487,8 @@ def _edge_line(edge: Dict, color: Optional[str], dashed: bool = False, prefix: s
     optionality = edge.get("optionality", "")
     frequency = edge.get("frequency", "")
 
-    label_parts = [prefix or "", relation]
-    # Edge label kept concise: only prefix + relation
+    label_parts = [prefix or "", f"[{edge_id}]" if edge_id else "", relation]
+    # Edge label kept concise: status/prefix + id + relation
     label = " ".join([p for p in label_parts if p]).strip()
     arrow = "-->" if not dashed else "..>"
     if color:
@@ -507,8 +514,8 @@ def _edge_detail_lines(edge: Dict, prefix: str = "") -> List[str]:
         parts.append(f"freq={frequency}")
     if not parts:
         return []
-    tag = f"[{prefix}] " if prefix else ""
-    return [f"{tag}{edge.get('source')} -> {edge.get('target')}: {relation} | " + "; ".join(parts)]
+    tag = f"{prefix}: " if prefix else ""
+    return [f"{tag}{edge.get('source')} -> {edge.get('target')} | {relation} | " + "; ".join(parts)]
 
 
 # ---- Confluence publishing ------------------------------------------------ #
