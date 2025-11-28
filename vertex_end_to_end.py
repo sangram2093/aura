@@ -30,6 +30,7 @@ DEFAULT_LOCATION = os.getenv("LOCATION", "us-central1")
 DEFAULT_PROJECT = os.getenv("PROJECT_ID") or os.getenv("PROJECT_NAME")
 DEFAULT_KEYFILE = os.getenv("GOOGLE_APPLICATION_CREDENTIALS", "keyfile.json")
 DEFAULT_MAX_OUTPUT_TOKENS = int(os.getenv("MAX_OUTPUT_TOKENS", "8192"))
+DEFAULT_PUML_SCALE = os.getenv("PLANTUML_SCALE", "max 1600 width 900 height")
 
 
 def init_vertexai_from_keyfile(
@@ -326,7 +327,7 @@ def sanitize_id(raw: str) -> str:
     return "".join(ch if ch.isalnum() or ch in "_-" else "_" for ch in raw)
 
 
-def generate_plantuml(graph: Dict, title: Optional[str] = None, scale: Optional[str] = "max 1200 width") -> str:
+def generate_plantuml(graph: Dict, title: Optional[str] = None, scale: Optional[str] = None) -> str:
     nodes: List[Dict] = graph.get("nodes", [])
     edges: List[Dict] = graph.get("edges", [])
 
@@ -381,7 +382,7 @@ def generate_plantuml(graph: Dict, title: Optional[str] = None, scale: Optional[
     return "\n".join(lines)
 
 
-def generate_plantuml_diff(old_graph: Dict, new_graph: Dict, title: Optional[str] = None, scale: Optional[str] = "max 1200 width") -> str:
+def generate_plantuml_diff(old_graph: Dict, new_graph: Dict, title: Optional[str] = None, scale: Optional[str] = None) -> str:
     """Combined diff view: common edges gray, new green, removed red."""
     def edge_key(e: Dict) -> tuple:
         return (
@@ -534,6 +535,7 @@ def run_pipeline(
     old_pdf: Optional[Path],
     model_name: str,
     page_title: str,
+    scale: Optional[str],
 ) -> Dict:
     """Execute: read PDFs -> LLM -> graph -> PlantUML."""
     new_text = extract_text_from_pdf(str(new_pdf))
@@ -553,9 +555,9 @@ def run_pipeline(
     new_graph_nx = parse_graph_data(new_entities)
     old_canonical = to_canonical_graph(old_entities) if old_entities else None
 
-    plantuml_new = generate_plantuml(new_canonical, title=page_title)
+    plantuml_new = generate_plantuml(new_canonical, title=page_title, scale=scale)
     plantuml_diff = (
-        generate_plantuml_diff(old_canonical, new_canonical, title=f"{page_title} (Diff)")
+        generate_plantuml_diff(old_canonical, new_canonical, title=f"{page_title} (Diff)", scale=scale)
         if old_canonical
         else None
     )
@@ -590,6 +592,7 @@ def main() -> None:
     parser.add_argument("--confluence-token", default=os.getenv("CONFLUENCE_API_TOKEN"), help="Confluence API token/password.")
     parser.add_argument("--title", help="Title for PlantUML/Confluence page; defaults to PDF name.")
     parser.add_argument("--plantuml-out", type=Path, help="Optional path to save the PlantUML text.")
+    parser.add_argument("--puml-scale", default=DEFAULT_PUML_SCALE, help="PlantUML scale directive, e.g., 'max 1600 width 900 height', '1.2', or leave blank to disable.")
 
     args = parser.parse_args()
 
@@ -606,6 +609,7 @@ def main() -> None:
         old_pdf=args.old_pdf,
         model_name=args.model,
         page_title=title,
+        scale=args.puml_scale if args.puml_scale else None,
     )
 
     print("\n=== Summaries ===")
