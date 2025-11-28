@@ -326,13 +326,15 @@ def sanitize_id(raw: str) -> str:
     return "".join(ch if ch.isalnum() or ch in "_-" else "_" for ch in raw)
 
 
-def generate_plantuml(graph: Dict, title: Optional[str] = None) -> str:
+def generate_plantuml(graph: Dict, title: Optional[str] = None, scale: Optional[str] = "max 1200 width") -> str:
     nodes: List[Dict] = graph.get("nodes", [])
     edges: List[Dict] = graph.get("edges", [])
 
     lines: List[str] = ["@startuml"]
     if title:
         lines.append(f"title {title}")
+    if scale:
+        lines.append(f"scale {scale}")
 
     lines.append("skinparam backgroundColor #FFFFFF")
     lines.append("skinparam componentStyle rectangle")
@@ -379,7 +381,7 @@ def generate_plantuml(graph: Dict, title: Optional[str] = None) -> str:
     return "\n".join(lines)
 
 
-def generate_plantuml_diff(old_graph: Dict, new_graph: Dict, title: Optional[str] = None) -> str:
+def generate_plantuml_diff(old_graph: Dict, new_graph: Dict, title: Optional[str] = None, scale: Optional[str] = "max 1200 width") -> str:
     """Combined diff view: common edges gray, new green, removed red."""
     def edge_key(e: Dict) -> tuple:
         return (
@@ -406,6 +408,8 @@ def generate_plantuml_diff(old_graph: Dict, new_graph: Dict, title: Optional[str
     lines: List[str] = ["@startuml"]
     if title:
         lines.append(f"title {title}")
+    if scale:
+        lines.append(f"scale {scale}")
 
     lines.append("skinparam backgroundColor #FFFFFF")
     lines.append("skinparam componentStyle rectangle")
