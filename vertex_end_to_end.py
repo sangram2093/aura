@@ -2,6 +2,7 @@ import argparse
 import json
 import os
 import re
+import sys
 from pathlib import Path
 from typing import Dict, List, Optional
 
@@ -9,6 +10,11 @@ import requests
 import vertexai
 from google.oauth2 import service_account
 from vertexai.generative_models import GenerativeModel
+
+# Ensure we import the local utils.py even if the script is run from another CWD
+PROJECT_ROOT = Path(__file__).resolve().parent
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 from utils import extract_text_from_pdf, parse_graph_data
 
