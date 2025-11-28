@@ -79,54 +79,92 @@ def call_vertex(
 # ---- LLM prompts mirroring current app flow ------------------------------- #
 
 def get_summary_with_context(text: str, context: Optional[str] = None, model_name: str = DEFAULT_MODEL) -> str:
-    """Summarize the regulation text with the same structure used in the Flask app."""
-    base_prompt = f"""
-You are an AI assistant specialized in analyzing financial regulation documents to produce accurate, consistent, and structured summaries.
-
-Your task is to extract and explain the key operational, compliance, and reporting requirements, especially highlighting changes between previous and current regulatory expectations - including reporting methods, data fields, and submission timelines.
-
-Resolve any internal references and use only the content provided.
-
-Format the response with this structure:
-
----
-
-**Regulation Summary:**
-
-1. **Purpose and Objective:**
-State the regulatory intent - especially changes in reporting infrastructure and traceability.
-
-2. **Scope and Applicability:**
-List impacted entities, transaction types, and applicable instruments.
-
-3. **Definitions and Eligibility:**
-Clarify critical terms like Settlement Type, LEI usage, or Short Code.
-
-4. **Reporting Requirements:**
-Compare new vs. old requirements: deadlines, submission channels, file types, validation steps.
-
-5. **Inclusion and Exclusion Criteria:**
-Detail positions to be included, and treatment of anonymous or non-LEI holders.
-
-6. **Data Rules and Validation Logic:**
-Describe file structure, required fields, validation rules.
-
-7. **Operational Notes and Exceptions:**
-Mention nil reporting, dual submissions during parallel run, and third-party communication responsibilities.
-
----
-
-**Regulation Document:**
-{text}
-"""
+    """Summarize regulation text using the same prompt/structure as anthropic_llm.py."""
     if context:
-        base_prompt += f"""
+        prompt = f"""
+            You are an AI assistant specialized in analyzing financial regulation documents to produce accurate, consistent, and structured summaries.
 
-Reference of the past year regulation entity relationship is given for your reference below. Use it only for semantic difference matching. Make sure you figure out the differences very clearly in the above text and previous year's summarized text and provide the summary for this year based on above text.
+            Your task is to extract and explain the key operational, compliance, and reporting requirements, especially highlighting changes between previous and current regulatory expectations - including reporting methods, data fields, and submission timelines.
 
-{context}
-"""
-    return call_vertex(base_prompt, model_name=model_name)
+            Resolve any internal references and use only the content provided.
+
+            Format the response with this structure:
+
+            ---
+
+            **Regulation Summary:**
+
+            1. **Purpose and Objective:**
+            State the regulatory intent - especially changes in reporting infrastructure and traceability.
+
+            2. **Scope and Applicability:**
+            List impacted entities, transaction types (e.g., OTC positions), and applicable metals or instruments.
+
+            3. **Definitions and Eligibility:**
+            Clarify critical terms like Settlement Type, LEI usage, Short Code, etc.
+
+            4. **Reporting Requirements:**
+            Compare new vs. old requirements: deadlines, submission channels (email vs. UDG), file types, validation steps.
+
+            5. **Inclusion and Exclusion Criteria:**
+            Detail positions to be included (e.g., all OTC positions, no threshold), and treatment of anonymous or non-LEI holders.
+
+            6. **Data Rules and Validation Logic:**
+            Describe XML structure, required fields (e.g., SeqNo, Report Reference), validation rules (e.g., OTC-008).
+
+            7. **Operational Notes and Exceptions:**
+            Mention nil reporting, dual submissions during parallel run, and third-party communication responsibilities.
+
+            ---
+
+            **Regulation Document:**
+            {text}
+
+            Reference of the past year regulation entity relationship is given for your reference below. Use it only for semantic difference matching. Make sure you figure out the differences very clear in the above text and previous year's summarized text and provide the summary for this year based on above text.
+
+            {context}
+        """
+    else:
+        prompt = f"""
+            You are an AI assistant specialized in analyzing financial regulation documents to produce accurate, consistent, and structured summaries.
+
+            Your task is to extract and explain the key operational, compliance, and reporting requirements, especially highlighting changes between previous and current regulatory expectations - including reporting methods, data fields, and submission timelines.
+
+            Resolve any internal references and use only the content provided.
+
+            Format the response with this structure:
+
+            ---
+
+            **Regulation Summary:**
+
+            1. **Purpose and Objective:**
+            State the regulatory intent - especially changes in reporting infrastructure and traceability.
+
+            2. **Scope and Applicability:**
+            List impacted entities, transaction types (e.g., OTC positions), and applicable metals or instruments.
+
+            3. **Definitions and Eligibility:**
+            Clarify critical terms like Settlement Type, LEI usage, Short Code, etc.
+
+            4. **Reporting Requirements:**
+            Compare new vs. old requirements: deadlines, submission channels (email vs. UDG), file types, validation steps.
+
+            5. **Inclusion and Exclusion Criteria:**
+            Detail positions to be included (e.g., all OTC positions, no threshold), and treatment of anonymous or non-LEI holders.
+
+            6. **Data Rules and Validation Logic:**
+            Describe XML structure, required fields (e.g., SeqNo, Report Reference), validation rules (e.g., OTC-008).
+
+            7. **Operational Notes and Exceptions:**
+            Mention nil reporting, dual submissions during parallel run, and third-party communication responsibilities.
+
+            ---
+
+            **Regulation Document:**
+            {text}
+        """
+    return call_vertex(prompt, model_name=model_name)
 
 
 def _extract_json_blob(raw_text: str) -> Dict:
@@ -190,50 +228,65 @@ def get_entity_relationship_with_context(
     context: Optional[str] = None,
     model_name: str = DEFAULT_MODEL,
 ) -> Dict:
-    """Extract entity relationships in the same JSON structure expected by utils.parse_graph_data."""
-    prompt = f"""
-You are an AI assistant specialized in extracting structured semantic relationships from financial regulation summaries.
+    """Extract entity relationships using the same prompt/logic as anthropic_llm.py."""
+    base_prompt = f"""
+        You are an AI assistant specialized in extracting structured semantic relationships from financial regulation summaries.
 
-For the given summary of the regulation, provide entity relationships in subject-verb-object, optionality, condition for relationship to be active, property of the object which is part of the condition, the frequency of condition validation, and the actual thresholds where the bank is the obligor. Consider the essential elements of an obligation such as active subject (creditor or obligee), passive subject (debtor or obligor) and prestation (object or subject matter of the obligation) and write the relationships in the above format with the perspective of the bank as an obligor where the relationships will be useful for creating the standard operating procedures.
+        Your task is to extract subject-verb-object relationships focused on weekly OTC position reporting by Members to LME, with key conditional and validation rules.
 
-The verb should correspond to obligation and the conditions which make the obligation mandatory should be reported as conditions. Resolve all cross references. Assign each entity a globally unique ID.
+        For the given summary of the regulation, provide entity relationships in subject-verb-object, optionality, condition for relationship to be active, property of the object which is part of the condition, the frequency of condition validation and the actual thresholds where XYZ bank is licensed commercial bank. Consider the essential elements of an obligation such as active subject (creditor or obligee), passive subject (debtor or obligor) and prestation (object or subject matter of the obligation) and write the relationships in the above format with the perspective of XYZ bank as an obligor where the relationships will be useful for creating the standard operating procedures for the bank.
+        The verb should correspond to obligation and the conditions which make the obligation mandatory should be reported as conditions. For e.g. XYZ bank grants a loan to any customer has no meaning from the obligation perspective but a granting of a loan is a condition which obligates XYZ bank to report the loan and associated attributes.
+        You as an assistant should resolve all of the cross references within the document. Assign each entity a globally unique ID.
 
-Respond in valid JSON ONLY using the structure:
-{{
-    "entities": [
-        {{"id": "E1", "name": "Bank", "type": "organization"}}
-    ],
-    "relationships": [
+        ?? **Instructions**:
+
+        - IGNORE isolated nodes and ONLY extract entities that participate in at least one relationship and are connected to root node
+        - Avoid listing entities that are not connected to any verb-object pair
+        - Merge similar entities (e.g., all LCBs as one node)
+        - For each relationship, include:
+            - Subject ID & Name
+            - Verb (action)
+            - Object ID & Name
+            - Optionality
+            - Condition for relationship to be active
+            - Property of object used in the condition
+            - Thresholds involved
+            - Reporting frequency
+            
+        ### Format:
+        Respond in **valid JSON only** using the structure below. Do not explain or include any additional commentary.
+
+        ```json
         {{
-            "subject_id": "E1",
-            "subject_name": "Bank",
-            "verb": "Reports",
-            "object_id": "E2",
-            "object_name": "Loan",
-            "Optionality": "Conditional",
-            "Condition for Relationship to be Active": "...",
-            "Property of Object (part of condition)": "...",
-            "Thresholds": "...",
-            "frequency": "weekly"
+            "entities": [
+                {{"id": "E1", "name": "XYZ Bank (LCB)", "type": "organization"}}
+            ],
+            "relationships": [
+                {{
+                    "subject_id": "E1",
+                    "subject_name": "XYZ Bank (LCB)",
+                    "verb": "Reports",
+                    "object_id": "E2",
+                    "object_name": "Loan (to Prime Customer)",
+                    "Optionality": "Conditional (Only if eligible loans exist)",
+                    "Condition for Relationship to be Active": "...",
+                    "Property of Object (part of condition)": "...",
+                    "Thresholds": "...",
+                    "frequency": "to be validated quarterly"
+                }}
+            ]
         }}
-    ]
-}}
 
-Input:
-{summary_text}
-"""
+        -- 
+
+        **Regulation Document:**:
+        {summary_text}
+    """
+
     if context:
-        prompt += f"""
+        base_prompt += f"\nReference of the previous year's regulation summary and graph is given below. Use it only for semantic difference matching. Reuse existing structure, entities, and relationship patterns unless the regulation explicitly defines a new obligation.\n{context}"
 
-Reference of the past year regulation entity relationship is given for your reference below. Use it only for semantic difference matching.
-{context}
-"""
-
-    raw = call_vertex(
-        prompt,
-        model_name=model_name,
-        response_mime_type="application/json",
-    )
+    raw = call_vertex(base_prompt, model_name=model_name)
     return _extract_json_blob(raw)
 
 
